@@ -1,5 +1,7 @@
 # CapyECG
 
+Hosted on https://capyecg.onrender.com/
+
 CapyECG is an educational ECG rhythm trainer for med students, ECG techs, paramedics, and nurses. It shows a 10-second rhythm strip, asks the learner to identify the rhythm, then reveals the known answer with short teaching points.
 
 **For training only. Not for clinical diagnosis.**

@@ -7,7 +7,6 @@ class PublicCase(BaseModel):
     id: int
     difficulty: str
     source_type: str
-    source_note: str
     waveform: dict[str, Any]
     options: list[str]
     disclaimer: str
@@ -21,6 +20,7 @@ class SubmitAnswerRequest(BaseModel):
 class SubmitAnswerResponse(BaseModel):
     case_id: int
     is_correct: bool
+    already_answered: bool = False
     submitted_answer: str
     correct_answer: str
     explanation: str

@@ -21,12 +21,31 @@ function App() {
   const [loading, setLoading] = React.useState(false);
   const [learningLoading, setLearningLoading] = React.useState(false);
   const [loadingText, setLoadingText] = React.useState("");
+  const [isWarmingUp, setIsWarmingUp] = React.useState(true);
   const [error, setError] = React.useState("");
   const [score, setScore] = React.useState({ correct: 0, total: 0 });
 
+  React.useEffect(() => {
+    let isMounted = true;
+
+    fetch(`${API_BASE}/api/health`)
+      .catch(() => null)
+      .finally(() => {
+        if (isMounted) setIsWarmingUp(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   async function startPractice() {
     setLoading(true);
-    setLoadingText("Capy is checking their heart rhythm...");
+    setLoadingText(
+      isWarmingUp
+        ? "Warming up the ECG room. First strip can take a moment..."
+        : "Capy is checking their heart rhythm..."
+    );
     setError("");
     setFeedback(null);
     setLearnMore(null);
@@ -60,10 +79,12 @@ function App() {
       if (!response.ok) throw new Error("Could not submit answer.");
       const result = await response.json();
       setFeedback(result);
-      setScore((current) => ({
-        correct: current.correct + (result.is_correct ? 1 : 0),
-        total: current.total + 1,
-      }));
+      if (!result.already_answered) {
+        setScore((current) => ({
+          correct: current.correct + (result.is_correct ? 1 : 0),
+          total: current.total + 1,
+        }));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -119,6 +140,7 @@ function App() {
           difficulty={difficulty}
           setDifficulty={setDifficulty}
           loading={loading}
+          isWarmingUp={isWarmingUp}
           loadingText={loadingText}
           error={error}
           onStart={startPractice}
@@ -149,6 +171,7 @@ function Home({
   difficulty,
   setDifficulty,
   loading,
+  isWarmingUp,
   loadingText,
   error,
   onStart,
@@ -156,32 +179,29 @@ function Home({
   return (
     <section className="home-layout">
       <div className="hero">
-        <span className="eyebrow">10-second ECG rhythm strips</span>
+        <span className="eyebrow">AI-assisted ECG practice</span>
         <h1>CapyECG</h1>
-        <p className="lede">Practice interpreting 10-second ECG rhythm strips.</p>
+        <p className="lede">Cozy 10-second rhythm strip practice, generated for focused ECG reps.</p>
         <p className="source-note">
-          Pick a level and Groq helps write the educational prompt and answer choices.
-          CapyECG renders the strip with a rhythm simulator.
+          AI drafts the learning prompt and answer choices. CapyECG draws the strip from a known rhythm label.
         </p>
-        <div className="spa-badges" aria-label="CapyECG theme details">
-          <span>Green spa focus</span>
-          <span>Orange-on-head mascot</span>
-          <span>Educational ECG reps</span>
-        </div>
         <p className="training-note">For training only. Not for clinical diagnosis.</p>
         <button className="primary-button" onClick={onStart} disabled={loading}>
           <Play size={18} />
           {loading ? "Getting strip..." : "Start practice"}
         </button>
+        {isWarmingUp && !loading && (
+          <p className="warmup-text">Warming up the backend so your first strip loads faster.</p>
+        )}
         {loading && <LoadingCard text={loadingText} />}
         {error && <p className="error-text">{error}</p>}
       </div>
 
-      <section className="setup-panel cozy-panel" aria-label="Practice setup">
+      <section className="setup-panel" aria-label="Practice setup">
         <CapybaraMascot />
         <h2>Practice setup</h2>
         <OptionGroup
-          label="Choose your round"
+          label="Choose your difficulty"
           value={difficulty}
           onChange={setDifficulty}
           options={["Easy", "Medium", "Hard"]}
@@ -247,8 +267,14 @@ function Practice({
           <span className="eyebrow">{caseData?.difficulty} practice</span>
           <h1>What rhythm is this?</h1>
         </div>
-        <div className="score-pill">
-          Score {score.correct}/{score.total}
+        <div className="practice-header-actions">
+          <button className="quiet-button" onClick={onReset} type="button">
+            <RotateCcw size={16} />
+            Main screen
+          </button>
+          <div className="score-pill">
+            Score {score.correct}/{score.total}
+          </div>
         </div>
       </div>
 
@@ -266,15 +292,13 @@ function Practice({
         <div className="strip-toolbar">
           <div>
             <strong>10-second rhythm strip</strong>
-            <span>{caseData?.waveform?.lead || "Lead II"} / {caseData?.source_type}</span>
-          </div>
-          <div className="strip-companion">
-            <img src={capybaraIcon} alt="" />
-            <span>Static strip</span>
+            <span>
+              {caseData?.waveform?.lead || "Lead II"} / <SourceLabel sourceType={caseData?.source_type} />
+            </span>
           </div>
         </div>
         {caseData?.waveform && <StripStats waveform={caseData.waveform} />}
-        {caseData?.source_note && <p className="case-source-note">{caseData.source_note}</p>}
+        {caseData?.source_type && <SourceNote sourceType={caseData.source_type} />}
         {caseData && <EcgViewer waveform={caseData.waveform} />}
       </section>
 
@@ -352,6 +376,30 @@ function StripStats({ waveform }) {
       ))}
     </div>
   );
+}
+
+function SourceLabel({ sourceType }) {
+  const labels = {
+    "groq-generated": "AI-assisted educational case",
+    "groq-cache": "Cached AI-assisted case",
+    "groq-fallback": "Local case after AI timeout",
+    "local-fallback": "Local educational case",
+    synthetic: "Synthetic educational case",
+  };
+
+  return labels[sourceType] || "Educational case";
+}
+
+function SourceNote({ sourceType }) {
+  const notes = {
+    "groq-generated": "AI drafted the prompt and answer choices; CapyECG generated the ECG strip from the stored answer.",
+    "groq-cache": "This uses a cached AI draft with a freshly generated ECG strip.",
+    "groq-fallback": "AI took too long, so CapyECG used a local educational case.",
+    "local-fallback": "CapyECG used a local educational case without waiting on AI.",
+    synthetic: "This strip is generated from a known educational rhythm template.",
+  };
+
+  return <p className="case-source-note">{notes[sourceType] || "Generated educational rhythm practice."}</p>;
 }
 
 function EcgViewer({ waveform }) {

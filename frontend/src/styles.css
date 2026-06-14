@@ -1,11 +1,18 @@
 :root {
   color: #22312d;
-  background: #f6f1ea;
+  background: #f7f2e9;
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Aptos", "Segoe UI", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  --green-900: #173f37;
+  --green-700: #2f6f61;
+  --green-100: #e7f3ec;
+  --cream: #fffaf2;
+  --paper: #fffdf8;
+  --orange: #d9822b;
+  --ink-soft: #5b6b64;
 }
 
 * {
@@ -17,9 +24,23 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background:
-    radial-gradient(circle at 86% 12%, rgba(231, 139, 50, 0.18), transparent 18rem),
-    radial-gradient(circle at top left, rgba(116, 168, 140, 0.35), transparent 32rem),
-    linear-gradient(135deg, #f9f4ed 0%, #eaf4ec 58%, #f8efe0 100%);
+    linear-gradient(rgba(47, 111, 97, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(47, 111, 97, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 88% 10%, rgba(217, 130, 43, 0.16), transparent 18rem),
+    radial-gradient(circle at 4% 14%, rgba(116, 168, 140, 0.26), transparent 30rem),
+    linear-gradient(135deg, #fff9ef 0%, #edf7ef 54%, #fbefe0 100%);
+  background-size: 34px 34px, 34px 34px, auto, auto, auto;
+}
+
+body::before {
+  position: fixed;
+  inset: auto 5vw 5vh auto;
+  width: min(42vw, 420px);
+  height: min(42vw, 420px);
+  pointer-events: none;
+  content: "";
+  background: radial-gradient(circle, rgba(47, 111, 97, 0.08), transparent 64%);
+  filter: blur(2px);
 }
 
 button {
@@ -36,7 +57,8 @@ button {
 .practice-header,
 .strip-toolbar,
 .answer-row,
-.action-row {
+.action-row,
+.practice-header-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -60,7 +82,7 @@ button {
   place-items: center;
   overflow: hidden;
   color: #fffaf3;
-  background: #2f6f61;
+  background: var(--green-700);
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(47, 111, 97, 0.22);
 }
@@ -85,7 +107,7 @@ button {
 .brand span,
 .disclaimer,
 .strip-toolbar span {
-  color: #65736d;
+  color: var(--ink-soft);
   font-size: 0.9rem;
 }
 
@@ -101,11 +123,11 @@ button {
 }
 
 .hero {
-  padding: 42px 0 24px;
+  padding: 46px 0 24px;
 }
 
 .eyebrow {
-  color: #2f6f61;
+  color: var(--green-700);
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.06em;
@@ -120,9 +142,11 @@ p {
 
 h1 {
   margin-bottom: 12px;
-  color: #17221f;
-  font-size: clamp(2.6rem, 7vw, 5.5rem);
-  line-height: 0.96;
+  color: #132722;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(3rem, 8vw, 6.4rem);
+  font-weight: 700;
+  line-height: 0.92;
 }
 
 h2 {
@@ -134,7 +158,7 @@ h2 {
   max-width: 560px;
   margin-bottom: 14px;
   color: #40504a;
-  font-size: 1.35rem;
+  font-size: 1.42rem;
   line-height: 1.45;
 }
 
@@ -145,30 +169,15 @@ h2 {
   line-height: 1.55;
 }
 
-.spa-badges {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 18px;
-}
-
-.spa-badges span,
-.strip-companion span {
-  border: 1px solid rgba(47, 111, 97, 0.22);
-  border-radius: 999px;
-  background: #e5f3ec;
-  color: #184039;
-  font-size: 0.84rem;
-  font-weight: 900;
-}
-
-.spa-badges span {
-  padding: 8px 11px;
-}
-
 .training-note {
   margin-bottom: 26px;
   color: #7a524b;
+  font-weight: 800;
+}
+
+.warmup-text {
+  margin: 12px 0 0;
+  color: #5d6f63;
   font-weight: 800;
 }
 
@@ -178,15 +187,33 @@ h2 {
 .feedback {
   border: 1px solid rgba(68, 91, 83, 0.14);
   border-radius: 8px;
-  background: rgba(255, 252, 247, 0.9);
+  background: rgba(255, 253, 248, 0.88);
+  backdrop-filter: blur(10px);
   box-shadow: 0 18px 40px rgba(61, 76, 71, 0.09);
 }
 
 .setup-panel {
+  position: relative;
   padding: 26px;
+  overflow: hidden;
+}
+
+.setup-panel::before {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: "";
+  background:
+    linear-gradient(135deg, rgba(47, 111, 97, 0.08), transparent 42%),
+    radial-gradient(circle at 86% 12%, rgba(217, 130, 43, 0.14), transparent 8rem);
+}
+
+.setup-panel > * {
+  position: relative;
 }
 
 .capy-mascot {
+  position: relative;
   display: grid;
   justify-items: center;
   gap: 10px;
@@ -196,8 +223,8 @@ h2 {
   border: 1px solid rgba(47, 111, 97, 0.16);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 80% 18%, rgba(231, 139, 50, 0.22), transparent 8rem),
-    linear-gradient(180deg, #fffaf3 0%, #eff7ef 100%);
+    radial-gradient(circle at 80% 18%, rgba(217, 130, 43, 0.22), transparent 8rem),
+    linear-gradient(180deg, var(--cream) 0%, #eff7ef 100%);
 }
 
 .capy-mascot img {
@@ -217,6 +244,7 @@ h2 {
 }
 
 .option-group {
+  position: relative;
   margin-bottom: 24px;
 }
 
@@ -259,9 +287,9 @@ h2 {
 .segmented button.selected,
 .choice.selected {
   color: #123b33;
-  border-color: #2f6f61;
-  background: #e5f3ec;
-  box-shadow: inset 0 0 0 1px #2f6f61;
+  border-color: var(--green-700);
+  background: var(--green-100);
+  box-shadow: inset 0 0 0 1px var(--green-700);
 }
 
 .primary-button,
@@ -279,12 +307,13 @@ h2 {
 
 .primary-button {
   color: #fffaf3;
-  border-color: #2f6f61;
-  background: #2f6f61;
+  border-color: var(--green-700);
+  background: linear-gradient(135deg, var(--green-700), #255a4f);
+  box-shadow: 0 12px 24px rgba(47, 111, 97, 0.18);
 }
 
 .secondary-button {
-  color: #2f6f61;
+  color: var(--green-700);
   background: #f8fffb;
 }
 
@@ -312,8 +341,8 @@ button:disabled {
   border: 1px solid rgba(47, 111, 97, 0.18);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 4rem 50%, rgba(126, 180, 150, 0.25), transparent 8rem),
-    rgba(255, 252, 247, 0.88);
+    linear-gradient(90deg, rgba(47, 111, 97, 0.1), transparent 42%),
+    rgba(255, 253, 248, 0.88);
   box-shadow: 0 12px 30px rgba(61, 76, 71, 0.08);
 }
 
@@ -330,7 +359,7 @@ button:disabled {
 }
 
 .coach-card strong {
-  color: #184039;
+  color: var(--green-900);
   margin-bottom: 4px;
 }
 
@@ -350,7 +379,7 @@ button:disabled {
   border: 1px solid rgba(47, 111, 97, 0.18);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 2rem 50%, rgba(231, 139, 50, 0.16), transparent 6rem),
+    radial-gradient(circle at 2rem 50%, rgba(217, 130, 43, 0.16), transparent 6rem),
     #f8fffb;
   box-shadow: 0 12px 26px rgba(61, 76, 71, 0.08);
 }
@@ -368,7 +397,7 @@ button:disabled {
 }
 
 .loading-card strong {
-  color: #184039;
+  color: var(--green-900);
 }
 
 .loading-card span {
@@ -383,10 +412,11 @@ button:disabled {
 
 .score-pill {
   padding: 10px 14px;
-  color: #184039;
-  background: #e5f3ec;
+  color: var(--green-900);
+  background: var(--green-100);
   border-radius: 999px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 .strip-panel {
@@ -413,25 +443,6 @@ button:disabled {
   color: #34443f;
   font-size: 0.82rem;
   font-weight: 900;
-}
-
-.strip-companion {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.strip-companion img {
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  object-fit: cover;
-  box-shadow: 0 6px 14px rgba(47, 111, 97, 0.12);
-}
-
-.strip-companion span {
-  padding: 9px 12px;
-  white-space: nowrap;
 }
 
 .case-source-note {
@@ -484,7 +495,7 @@ button:disabled {
   border: 1px solid rgba(47, 111, 97, 0.2);
   border-radius: 8px;
   background:
-    radial-gradient(circle at 95% 0%, rgba(231, 139, 50, 0.14), transparent 12rem),
+    radial-gradient(circle at 95% 0%, rgba(217, 130, 43, 0.14), transparent 12rem),
     rgba(255, 252, 247, 0.94);
   box-shadow: 0 18px 40px rgba(61, 76, 71, 0.08);
 }
@@ -505,7 +516,7 @@ button:disabled {
 }
 
 .lesson-grid strong {
-  color: #184039;
+  color: var(--green-900);
 }
 
 .lesson-grid ul {
@@ -586,6 +597,7 @@ button:disabled {
   .topbar,
   .home-layout,
   .practice-header,
+  .practice-header-actions,
   .coach-card,
   .strip-toolbar,
   .answer-row,

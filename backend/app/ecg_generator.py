@@ -84,9 +84,9 @@ def _beat_times(rhythm: str, rng: random.Random) -> list[float]:
     if rhythm == "Sinus bradycardia":
         return _regular_times(rng, 1.28, jitter=0.035, start=0.55)
     if rhythm == "Sinus tachycardia":
-        return _regular_times(rng, 0.55, jitter=0.018, start=0.42)
+        return _regular_times(rng, 0.48, jitter=0.012, start=0.42)
     if rhythm == "Atrial flutter":
-        return _regular_times(rng, 0.60, jitter=0.012, start=0.42)
+        return _regular_times(rng, 0.72, jitter=0.01, start=0.42)
     return _regular_times(rng, 0.84, jitter=0.025, start=0.48)
 
 
@@ -129,7 +129,7 @@ def _atrial_activity(t: float, rhythm: str) -> float:
     if rhythm == "Atrial flutter":
         phase = (t * 5.0) % 1.0
         saw = 2.0 * abs(2.0 * phase - 1.0) - 1.0
-        return 0.105 * saw
+        return 0.18 * saw
     if rhythm == "Atrial fibrillation":
         return (
             0.035 * math.sin(2 * math.pi * 6.6 * t)
@@ -155,6 +155,10 @@ def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> f
         pr_delay = 0.30
     if rhythm in {"Atrial fibrillation", "Atrial flutter", "SVT"}:
         p_amp = 0.0
+    if rhythm == "Sinus tachycardia":
+        pr_delay = 0.14
+        p_amp = 0.18
+        p_width = 0.026
     if beat_kind == "pac":
         p_amp = 0.18
         p_width = 0.024

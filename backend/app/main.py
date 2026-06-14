@@ -3,7 +3,14 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import get_connection, init_db, insert_case, recent_rhythm_labels, row_to_case
+from app.database import (
+    get_connection,
+    init_db,
+    insert_case,
+    recent_rhythm_labels,
+    record_answer_attempt,
+    row_to_case,
+)
 from app.ecg_generator import RHYTHMS
 from app.groq_cases import choose_rhythm, generate_case_with_groq, generate_learn_more, normalize_difficulty
 from app.schemas import LearnMoreResponse, PublicCase, SubmitAnswerRequest, SubmitAnswerResponse
@@ -31,6 +38,7 @@ app.add_middleware(
     allow_origins=[
         "https://capyecg.onrender.com",
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -69,7 +77,6 @@ def get_new_case(
         id=case_id,
         difficulty=case["difficulty"],
         source_type=case["source_type"],
-        source_note=case["source_note"],
         waveform=case["waveform"],
         options=case["options"],
         disclaimer=DISCLAIMER,
@@ -81,10 +88,13 @@ def submit_answer(payload: SubmitAnswerRequest) -> SubmitAnswerResponse:
     case = _get_case_or_404(payload.case_id)
     submitted = _normalize(payload.answer)
     correct = _normalize(case["rhythm_label"])
+    is_correct = submitted == correct
+    is_new_attempt = record_answer_attempt(case["id"], payload.answer, is_correct)
 
     return SubmitAnswerResponse(
         case_id=case["id"],
-        is_correct=submitted == correct,
+        is_correct=is_correct,
+        already_answered=not is_new_attempt,
         submitted_answer=payload.answer,
         correct_answer=case["rhythm_label"],
         explanation=case["explanation"],

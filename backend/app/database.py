@@ -27,7 +27,25 @@ def init_db() -> None:
                 explanation TEXT NOT NULL,
                 key_features_json TEXT NOT NULL,
                 waveform_json TEXT NOT NULL,
+                waveform_rhythm_label TEXT,
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+            )
+            """
+        )
+        columns = {
+            row["name"]
+            for row in conn.execute("PRAGMA table_info(ecg_cases)").fetchall()
+        }
+        if "waveform_rhythm_label" not in columns:
+            conn.execute("ALTER TABLE ecg_cases ADD COLUMN waveform_rhythm_label TEXT")
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS answer_attempts (
+                case_id INTEGER PRIMARY KEY,
+                submitted_answer TEXT NOT NULL,
+                is_correct INTEGER NOT NULL,
+                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (case_id) REFERENCES ecg_cases(id)
             )
             """
         )
@@ -42,6 +60,7 @@ def row_to_case(row: sqlite3.Row) -> dict[str, Any]:
         "explanation": row["explanation"],
         "key_features": json.loads(row["key_features_json"]),
         "waveform": json.loads(row["waveform_json"]),
+        "waveform_rhythm_label": row["waveform_rhythm_label"],
     }
 
 
@@ -55,9 +74,10 @@ def insert_case(case: dict[str, Any]) -> int:
                 source_type,
                 explanation,
                 key_features_json,
-                waveform_json
+                waveform_json,
+                waveform_rhythm_label
             )
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 case["rhythm_label"],
@@ -66,9 +86,26 @@ def insert_case(case: dict[str, Any]) -> int:
                 case["explanation"],
                 json.dumps(case["key_features"]),
                 json.dumps(case["waveform"]),
+                case.get("waveform_rhythm_label", case["rhythm_label"]),
             ),
         )
         return int(cursor.lastrowid)
+
+
+def record_answer_attempt(case_id: int, submitted_answer: str, is_correct: bool) -> bool:
+    with get_connection() as conn:
+        cursor = conn.execute(
+            """
+            INSERT OR IGNORE INTO answer_attempts (
+                case_id,
+                submitted_answer,
+                is_correct
+            )
+            VALUES (?, ?, ?)
+            """,
+            (case_id, submitted_answer, int(is_correct)),
+        )
+        return cursor.rowcount > 0
 
 
 def recent_rhythm_labels(difficulty: str, limit: int = 4) -> list[str]:

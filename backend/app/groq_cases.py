@@ -14,6 +14,8 @@ load_dotenv()
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
+GROQ_CASE_TIMEOUT_SECONDS = 8
+GROQ_LEARN_MORE_TIMEOUT_SECONDS = 8
 DIFFICULTY_MAP = {
     "Easy": "Beginner",
     "Medium": "Intermediate",
@@ -100,10 +102,10 @@ def local_fallback_case(
         "rhythm_label": rhythm,
         "difficulty": difficulty,
         "source_type": source_type,
-        "source_note": "Local educational fallback used because Groq generation is not configured or unavailable.",
         "explanation": EXPLANATIONS[rhythm],
         "key_features": KEY_FEATURES[rhythm],
         "waveform": generate_waveform(rhythm, difficulty),
+        "waveform_rhythm_label": rhythm,
         "options": options,
     }
 
@@ -132,7 +134,7 @@ def _request_groq_case(api_key: str, difficulty: str, rhythm: str) -> dict[str, 
             },
         ],
     }
-    with httpx.Client(timeout=35) as client:
+    with httpx.Client(timeout=GROQ_CASE_TIMEOUT_SECONDS) as client:
         response = client.post(GROQ_URL, headers=headers, json=payload)
         response.raise_for_status()
     content = response.json()["choices"][0]["message"]["content"]
@@ -176,7 +178,7 @@ Keep it educational, practical, and brief. Do not mention treatment or diagnosis
             },
         ],
     }
-    with httpx.Client(timeout=35) as client:
+    with httpx.Client(timeout=GROQ_LEARN_MORE_TIMEOUT_SECONDS) as client:
         response = client.post(GROQ_URL, headers=headers, json=payload)
         response.raise_for_status()
     content = response.json()["choices"][0]["message"]["content"]
@@ -243,13 +245,10 @@ def _build_case_from_text(
         "rhythm_label": rhythm,
         "difficulty": difficulty,
         "source_type": source_type,
-        "source_note": (
-            "Groq generated the educational prompt and answer choices; "
-            "CapyECG rendered the strip with its simulator."
-        ),
         "explanation": case_text["explanation"],
         "key_features": case_text["key_features"],
         "waveform": generate_waveform(rhythm, difficulty),
+        "waveform_rhythm_label": rhythm,
         "options": options,
     }
 

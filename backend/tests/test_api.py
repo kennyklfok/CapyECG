@@ -1,6 +1,6 @@
 from fastapi.testclient import TestClient
 
-from app.database import init_db
+from app.database import get_connection, init_db, row_to_case
 from app.groq_cases import choose_rhythm
 from app.main import app
 
@@ -31,7 +31,16 @@ def test_new_case_and_submit_answer_flow(monkeypatch):
     feedback = answer_response.json()
     assert feedback["correct_answer"]
     assert feedback["explanation"]
+    assert feedback["already_answered"] is False
     assert feedback["disclaimer"] == "For training only. Not for clinical diagnosis."
+
+    repeat_response = client.post(
+        "/api/answers",
+        json={"case_id": case["id"], "answer": case["options"][0]},
+    )
+
+    assert repeat_response.status_code == 200
+    assert repeat_response.json()["already_answered"] is True
 
 
 def test_invalid_case_returns_404():
@@ -62,3 +71,17 @@ def test_choose_rhythm_avoids_recent_labels_when_possible():
     choices = {choose_rhythm("Beginner", recent) for _ in range(10)}
 
     assert choices == {"Sinus tachycardia"}
+
+
+def test_generated_case_stores_matching_waveform_rhythm_label(monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    init_db()
+    response = client.get("/api/cases/new?difficulty=Medium")
+
+    assert response.status_code == 200
+    case_id = response.json()["id"]
+    with get_connection() as conn:
+        row = conn.execute("SELECT * FROM ecg_cases WHERE id = ?", [case_id]).fetchone()
+
+    stored_case = row_to_case(row)
+    assert stored_case["rhythm_label"] == stored_case["waveform_rhythm_label"]

@@ -1,8 +1,10 @@
 from fastapi.testclient import TestClient
 
 from app.database import get_connection, init_db, row_to_case
+from app.ecg_generator import RHYTHMS, generate_waveform
 from app.groq_cases import choose_rhythm
 from app.main import app
+from app.seed_data import DIFFICULTY_BY_RHYTHM, EXPLANATIONS, KEY_FEATURES
 
 
 client = TestClient(app)
@@ -67,10 +69,43 @@ def test_learn_more_returns_educational_note(monkeypatch):
 
 
 def test_choose_rhythm_avoids_recent_labels_when_possible():
-    recent = ["Normal sinus rhythm", "Sinus bradycardia"]
+    recent = ["Normal sinus rhythm", "Sinus bradycardia", "Sinus arrhythmia"]
     choices = {choose_rhythm("Beginner", recent) for _ in range(10)}
 
     assert choices == {"Sinus tachycardia"}
+
+
+def test_choose_rhythm_uses_oldest_recent_when_pool_is_exhausted():
+    recent = ["Sinus arrhythmia", "Sinus tachycardia", "Sinus bradycardia", "Normal sinus rhythm"]
+
+    assert choose_rhythm("Beginner", recent) == "Normal sinus rhythm"
+
+
+def test_choose_rhythm_uses_newest_duplicate_for_rotation():
+    recent = [
+        "Sinus arrhythmia",
+        "Normal sinus rhythm",
+        "Sinus tachycardia",
+        "Sinus bradycardia",
+        "Normal sinus rhythm",
+    ]
+
+    assert choose_rhythm("Beginner", recent) == "Sinus bradycardia"
+
+
+def test_rhythm_library_has_metadata_and_waveforms():
+    assert len(RHYTHMS) >= 20
+
+    for index, rhythm in enumerate(RHYTHMS, start=1):
+        assert rhythm in DIFFICULTY_BY_RHYTHM
+        assert rhythm in EXPLANATIONS
+        assert rhythm in KEY_FEATURES
+        assert len(KEY_FEATURES[rhythm]) >= 3
+
+        waveform = generate_waveform(rhythm, DIFFICULTY_BY_RHYTHM[rhythm], seed=index)
+        assert waveform["durationSeconds"] == 10
+        assert waveform["sampleRate"] == 250
+        assert len(waveform["samples"]) == 2500
 
 
 def test_generated_case_stores_matching_waveform_rhythm_label(monkeypatch):

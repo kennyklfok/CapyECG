@@ -11,13 +11,26 @@ RHYTHMS = [
     "Normal sinus rhythm",
     "Sinus bradycardia",
     "Sinus tachycardia",
+    "Sinus arrhythmia",
     "Atrial fibrillation",
     "Atrial flutter",
     "First-degree AV block",
+    "Second-degree AV block type I",
+    "Second-degree AV block type II",
+    "Third-degree AV block",
     "PVCs",
     "PACs",
     "Ventricular tachycardia",
+    "Ventricular fibrillation",
+    "Accelerated idioventricular rhythm",
     "SVT",
+    "Junctional rhythm",
+    "Paced rhythm",
+    "LVH pattern",
+    "Left bundle branch block",
+    "Right bundle branch block",
+    "Hyperkalemia pattern",
+    "Prolonged QT",
 ]
 
 
@@ -36,6 +49,12 @@ def generate_waveform(
         t = index / SAMPLE_RATE
         value = _baseline(t, rng, noise_level)
         value += _atrial_activity(t, rhythm)
+        value += _standalone_p_waves(t, rhythm)
+
+        if rhythm == "Ventricular fibrillation":
+            value += _vfib_activity(t, rng)
+            samples.append(round(_clamp(value, -1.7, 1.9), 4))
+            continue
 
         for beat_index, beat_time in enumerate(beat_times):
             beat_kind = ectopic_beats.get(beat_index, "normal")
@@ -64,8 +83,14 @@ def _heart_rate(beat_times: list[float]) -> int:
 
 
 def _regularity_label(rhythm: str, beat_times: list[float]) -> str:
+    if rhythm == "Ventricular fibrillation":
+        return "Chaotic"
     if rhythm == "Atrial fibrillation":
         return "Irregularly irregular"
+    if rhythm in {"Sinus arrhythmia", "Second-degree AV block type I", "Second-degree AV block type II"}:
+        return "Irregular"
+    if rhythm == "Third-degree AV block":
+        return "AV dissociation"
     if rhythm in {"PVCs", "PACs"}:
         return "Mostly regular with early beats"
     if len(beat_times) < 3:
@@ -75,18 +100,34 @@ def _regularity_label(rhythm: str, beat_times: list[float]) -> str:
 
 
 def _beat_times(rhythm: str, rng: random.Random) -> list[float]:
+    if rhythm == "Ventricular fibrillation":
+        return []
     if rhythm == "Atrial fibrillation":
         return _irregular_times(rng, 0.42, 1.18, start=0.45)
     if rhythm == "Ventricular tachycardia":
         return _regular_times(rng, 0.34, jitter=0.012, start=0.25)
+    if rhythm == "Accelerated idioventricular rhythm":
+        return _regular_times(rng, 0.86, jitter=0.025, start=0.35)
     if rhythm == "SVT":
         return _regular_times(rng, 0.40, jitter=0.008, start=0.35)
+    if rhythm == "Junctional rhythm":
+        return _regular_times(rng, 1.02, jitter=0.018, start=0.52)
+    if rhythm == "Paced rhythm":
+        return _regular_times(rng, 0.92, jitter=0.002, start=0.45)
     if rhythm == "Sinus bradycardia":
         return _regular_times(rng, 1.28, jitter=0.035, start=0.55)
     if rhythm == "Sinus tachycardia":
         return _regular_times(rng, 0.48, jitter=0.012, start=0.42)
+    if rhythm == "Sinus arrhythmia":
+        return _sinus_arrhythmia_times(rng)
     if rhythm == "Atrial flutter":
         return _regular_times(rng, 0.72, jitter=0.01, start=0.42)
+    if rhythm == "Second-degree AV block type I":
+        return [0.48, 1.34, 2.34, 3.98, 4.84, 5.84, 7.48, 8.34, 9.34]
+    if rhythm == "Second-degree AV block type II":
+        return [0.48, 1.36, 3.12, 4.0, 5.76, 6.64, 8.4, 9.28]
+    if rhythm == "Third-degree AV block":
+        return _regular_times(rng, 1.55, jitter=0.01, start=0.72)
     return _regular_times(rng, 0.84, jitter=0.025, start=0.48)
 
 
@@ -105,6 +146,18 @@ def _irregular_times(rng: random.Random, low: float, high: float, start: float) 
     while t < DURATION_SECONDS:
         times.append(t)
         t += rng.uniform(low, high)
+    return times
+
+
+def _sinus_arrhythmia_times(rng: random.Random) -> list[float]:
+    times = []
+    t = 0.48
+    index = 0
+    while t < DURATION_SECONDS:
+        interval = 0.82 + 0.18 * math.sin(index * 0.85) + rng.uniform(-0.025, 0.025)
+        times.append(t)
+        t += interval
+        index += 1
     return times
 
 
@@ -138,9 +191,35 @@ def _atrial_activity(t: float, rhythm: str) -> float:
     return 0.0
 
 
+def _standalone_p_waves(t: float, rhythm: str) -> float:
+    if rhythm == "Second-degree AV block type I":
+        p_times = [0.31, 1.14, 2.11, 3.08, 3.81, 4.64, 5.61, 6.58, 7.31, 8.14, 9.11]
+        return sum(_gaussian(t, p_time, 0.032, 0.15) for p_time in p_times)
+    if rhythm == "Second-degree AV block type II":
+        p_times = [0.31, 1.19, 2.07, 2.95, 3.83, 4.71, 5.59, 6.47, 7.35, 8.23, 9.11]
+        return sum(_gaussian(t, p_time, 0.03, 0.15) for p_time in p_times)
+    if rhythm == "Third-degree AV block":
+        p_times = [0.18 + 0.66 * index for index in range(16)]
+        return sum(_gaussian(t, p_time, 0.028, 0.14) for p_time in p_times)
+    return 0.0
+
+
+def _vfib_activity(t: float, rng: random.Random) -> float:
+    coarse = 0.55 * math.sin(2 * math.pi * 4.8 * t + 0.6 * math.sin(2 * math.pi * 0.7 * t))
+    fine = 0.22 * math.sin(2 * math.pi * 8.4 * t + 1.7)
+    return coarse + fine + rng.uniform(-0.12, 0.12)
+
+
 def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> float:
     if rhythm == "Ventricular tachycardia":
         return _wide_complex(t, beat_time, amplitude=1.22, width=0.082, t_wave=False)
+    if rhythm in {"Left bundle branch block", "Paced rhythm"}:
+        value = _wide_complex(t, beat_time, amplitude=1.18, width=0.092, t_wave=True)
+        if rhythm == "Paced rhythm":
+            value += _pacing_spike(t, beat_time - 0.045)
+        return value
+    if rhythm == "Right bundle branch block":
+        return _rbbb_complex(t, beat_time)
     if beat_kind == "pvc":
         return _wide_complex(t, beat_time, amplitude=1.32, width=0.07, t_wave=True)
 
@@ -153,8 +232,22 @@ def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> f
 
     if rhythm == "First-degree AV block":
         pr_delay = 0.30
+    if rhythm in {"Second-degree AV block type I", "Second-degree AV block type II", "Third-degree AV block"}:
+        p_amp = 0.0
     if rhythm in {"Atrial fibrillation", "Atrial flutter", "SVT"}:
         p_amp = 0.0
+    if rhythm == "Junctional rhythm":
+        p_amp = -0.08
+        pr_delay = -0.08
+    if rhythm == "LVH pattern":
+        qrs_amp = 1.62
+        t_amp = -0.18
+    if rhythm == "Hyperkalemia pattern":
+        p_amp = 0.05
+        qrs_width = 0.026
+        t_amp = 0.78
+    if rhythm == "Prolonged QT":
+        t_amp = 0.28
     if rhythm == "Sinus tachycardia":
         pr_delay = 0.14
         p_amp = 0.18
@@ -172,7 +265,9 @@ def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> f
     value += _gaussian(t, beat_time - 0.018, qrs_width, -0.20)
     value += _gaussian(t, beat_time, qrs_width, qrs_amp)
     value += _gaussian(t, beat_time + 0.026, qrs_width, -0.34)
-    value += _gaussian(t, beat_time + 0.245, 0.085, t_amp)
+    t_center = beat_time + (0.42 if rhythm == "Prolonged QT" else 0.245)
+    t_width = 0.12 if rhythm in {"Hyperkalemia pattern", "Prolonged QT"} else 0.085
+    value += _gaussian(t, t_center, t_width, t_amp)
     return value
 
 
@@ -184,6 +279,20 @@ def _wide_complex(t: float, beat_time: float, amplitude: float, width: float, t_
     if t_wave:
         value += _gaussian(t, beat_time + 0.34, 0.13, -0.26)
     return value
+
+
+def _rbbb_complex(t: float, beat_time: float) -> float:
+    value = 0.0
+    value += _gaussian(t, beat_time - 0.018, 0.018, -0.16)
+    value += _gaussian(t, beat_time, 0.022, 0.92)
+    value += _gaussian(t, beat_time + 0.052, 0.026, -0.28)
+    value += _gaussian(t, beat_time + 0.095, 0.032, 0.56)
+    value += _gaussian(t, beat_time + 0.255, 0.09, 0.24)
+    return value
+
+
+def _pacing_spike(t: float, spike_time: float) -> float:
+    return _gaussian(t, spike_time, 0.004, 1.35) - _gaussian(t, spike_time + 0.006, 0.004, 0.85)
 
 
 def _gaussian(x: float, center: float, width: float, amplitude: float) -> float:

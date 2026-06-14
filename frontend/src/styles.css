@@ -50,7 +50,7 @@ button {
 .app-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 24px 0 40px;
+  padding: 24px 0 28px;
 }
 
 .topbar,
@@ -167,12 +167,6 @@ h2 {
   margin-bottom: 14px;
   color: #5b6b64;
   line-height: 1.55;
-}
-
-.training-note {
-  margin-bottom: 26px;
-  color: #7a524b;
-  font-weight: 800;
 }
 
 .warmup-text {
@@ -315,6 +309,13 @@ h2 {
 .secondary-button {
   color: var(--green-700);
   background: #f8fffb;
+}
+
+.back-button {
+  color: #fffaf3;
+  border-color: rgba(47, 111, 97, 0.5);
+  background: linear-gradient(135deg, #3f7e70, #2f6f61);
+  box-shadow: 0 10px 22px rgba(47, 111, 97, 0.14);
 }
 
 .quiet-button {
@@ -588,6 +589,18 @@ button:disabled {
   font-weight: 800;
 }
 
+.site-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 34px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(68, 91, 83, 0.14);
+  color: #66756e;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 @media (max-width: 820px) {
   .app-shell {
     width: min(100% - 20px, 1180px);
@@ -627,5 +640,9 @@ button:disabled {
 
   .lesson-grid {
     grid-template-columns: 1fr;
+  }
+
+  .site-footer {
+    display: grid;
   }
 }

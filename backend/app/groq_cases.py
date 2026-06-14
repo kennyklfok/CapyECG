@@ -27,9 +27,38 @@ DIFFICULTY_MAP = {
 
 
 RHYTHMS_BY_DIFFICULTY = {
-    "Beginner": ["Normal sinus rhythm", "Sinus bradycardia", "Sinus tachycardia"],
-    "Intermediate": ["Atrial fibrillation", "Atrial flutter", "First-degree AV block", "PVCs", "PACs"],
-    "Advanced": ["Ventricular tachycardia", "SVT", "Atrial fibrillation", "Atrial flutter", "PVCs"],
+    "Beginner": [
+        "Normal sinus rhythm",
+        "Sinus bradycardia",
+        "Sinus tachycardia",
+        "Sinus arrhythmia",
+    ],
+    "Intermediate": [
+        "Atrial fibrillation",
+        "Atrial flutter",
+        "First-degree AV block",
+        "Second-degree AV block type I",
+        "PVCs",
+        "PACs",
+        "Junctional rhythm",
+        "Paced rhythm",
+        "LVH pattern",
+        "Right bundle branch block",
+    ],
+    "Advanced": [
+        "Ventricular tachycardia",
+        "Ventricular fibrillation",
+        "Accelerated idioventricular rhythm",
+        "SVT",
+        "Second-degree AV block type II",
+        "Third-degree AV block",
+        "Left bundle branch block",
+        "Hyperkalemia pattern",
+        "Prolonged QT",
+        "Atrial fibrillation",
+        "Atrial flutter",
+        "PVCs",
+    ],
 }
 
 _CASE_TEXT_CACHE: dict[tuple[str, str], dict[str, Any]] = {}
@@ -83,9 +112,23 @@ def normalize_difficulty(difficulty: str) -> str:
 
 def choose_rhythm(difficulty: str, recent_labels: list[str] | None = None) -> str:
     choices = RHYTHMS_BY_DIFFICULTY[difficulty]
-    recent = set(recent_labels or [])
-    available = [rhythm for rhythm in choices if rhythm not in recent]
-    return random.choice(available or choices)
+    recent = recent_labels or []
+    last_seen = {
+        rhythm: index
+        for index, rhythm in enumerate(recent)
+        if rhythm in choices and rhythm not in recent[:index]
+    }
+    unseen = [rhythm for rhythm in choices if rhythm not in last_seen]
+    if unseen:
+        return random.choice(unseen)
+
+    oldest_seen_index = max(last_seen.values())
+    oldest_rhythms = [
+        rhythm
+        for rhythm in choices
+        if last_seen[rhythm] == oldest_seen_index
+    ]
+    return random.choice(oldest_rhythms)
 
 
 def local_fallback_case(
@@ -292,12 +335,25 @@ def _fallback_confusions(rhythm: str) -> list[str]:
         "Normal sinus rhythm": ["Sinus bradycardia when the rate is slow", "Sinus tachycardia when the rate is fast"],
         "Sinus bradycardia": ["Normal sinus rhythm at the low end of normal", "Slow atrial fibrillation if P waves are unclear"],
         "Sinus tachycardia": ["SVT when the rate is very fast", "Atrial flutter with regular conduction"],
+        "Sinus arrhythmia": ["PACs if early beats are isolated", "Atrial fibrillation if P waves are hard to see"],
         "Atrial fibrillation": ["PACs when irregularity is intermittent", "Atrial flutter with variable block"],
         "Atrial flutter": ["SVT if flutter waves are hidden", "Atrial fibrillation if conduction varies"],
         "First-degree AV block": ["Normal sinus rhythm if PR interval is not measured", "Higher-grade block if dropped beats appear"],
+        "Second-degree AV block type I": ["Second-degree AV block type II", "Blocked PACs"],
+        "Second-degree AV block type II": ["Second-degree AV block type I", "Complete heart block"],
+        "Third-degree AV block": ["Second-degree AV block type II", "Junctional rhythm with AV dissociation missed"],
         "PVCs": ["PACs with aberrancy", "Ventricular tachycardia if wide beats run together"],
         "PACs": ["PVCs if the early beat is wide", "Sinus arrhythmia when timing varies"],
         "Ventricular tachycardia": ["SVT with aberrancy", "Frequent PVCs if the run is brief"],
+        "Ventricular fibrillation": ["Artifact", "Polymorphic ventricular tachycardia"],
+        "Accelerated idioventricular rhythm": ["Slow ventricular tachycardia", "Paced rhythm"],
         "SVT": ["Sinus tachycardia", "Atrial flutter with 2:1 conduction"],
+        "Junctional rhythm": ["Sinus bradycardia with small P waves", "Accelerated idioventricular rhythm if QRS is wide"],
+        "Paced rhythm": ["Left bundle branch block", "Ventricular rhythm without visible pacing spikes"],
+        "LVH pattern": ["Normal high voltage variant", "Left bundle branch block if QRS is wide"],
+        "Left bundle branch block": ["Paced rhythm", "Ventricular rhythm"],
+        "Right bundle branch block": ["PVCs with aberrancy", "Normal rhythm if terminal widening is missed"],
+        "Hyperkalemia pattern": ["Early repolarization", "Acute ischemic T-wave changes"],
+        "Prolonged QT": ["Normal sinus rhythm", "Hypokalemia-style repolarization changes"],
     }
     return confusions[rhythm]

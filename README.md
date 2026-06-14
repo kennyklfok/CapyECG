@@ -24,13 +24,26 @@ CapyECG is an educational ECG rhythm trainer for med students, ECG techs, parame
 - Normal sinus rhythm
 - Sinus bradycardia
 - Sinus tachycardia
+- Sinus arrhythmia
 - Atrial fibrillation
 - Atrial flutter
 - First-degree AV block
+- Second-degree AV block type I
+- Second-degree AV block type II
+- Third-degree AV block
 - PVCs
 - PACs
 - Ventricular tachycardia
+- Ventricular fibrillation
+- Accelerated idioventricular rhythm
 - SVT
+- Junctional rhythm
+- Paced rhythm
+- LVH pattern
+- Left bundle branch block
+- Right bundle branch block
+- Hyperkalemia pattern
+- Prolonged QT
 
 ## Project Structure
 

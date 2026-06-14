@@ -163,6 +163,10 @@ function App() {
           onReset={resetSession}
         />
       )}
+      <footer className="site-footer">
+        <span>Created by KF</span>
+        <span>Updated June 2026</span>
+      </footer>
     </main>
   );
 }
@@ -185,7 +189,6 @@ function Home({
         <p className="source-note">
           AI drafts the learning prompt and answer choices. CapyECG draws the strip from a known rhythm label.
         </p>
-        <p className="training-note">For training only. Not for clinical diagnosis.</p>
         <button className="primary-button" onClick={onStart} disabled={loading}>
           <Play size={18} />
           {loading ? "Getting strip..." : "Start practice"}
@@ -268,7 +271,7 @@ function Practice({
           <h1>What rhythm is this?</h1>
         </div>
         <div className="practice-header-actions">
-          <button className="quiet-button" onClick={onReset} type="button">
+          <button className="secondary-button back-button" onClick={onReset} type="button">
             <RotateCcw size={16} />
             Main screen
           </button>
@@ -460,7 +463,6 @@ function FeedbackPanel({ feedback }) {
           <li key={feature}>{feature}</li>
         ))}
       </ul>
-      <small>{feedback.disclaimer}</small>
     </section>
   );
 }
@@ -495,7 +497,6 @@ function LearnMorePanel({ lesson }) {
         </div>
       </div>
       <p className="memory-tip">{lesson.memory_tip}</p>
-      <small>{lesson.disclaimer}</small>
     </section>
   );
 }

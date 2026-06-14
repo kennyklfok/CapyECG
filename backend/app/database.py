@@ -108,7 +108,7 @@ def record_answer_attempt(case_id: int, submitted_answer: str, is_correct: bool)
         return cursor.rowcount > 0
 
 
-def recent_rhythm_labels(difficulty: str, limit: int = 4) -> list[str]:
+def recent_rhythm_labels(difficulty: str, limit: int = 12) -> list[str]:
     with get_connection() as conn:
         rows = conn.execute(
             """

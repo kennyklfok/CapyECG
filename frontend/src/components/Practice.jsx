@@ -27,6 +27,7 @@ export function Practice({
 }) {
   const feedbackRef = React.useRef(null);
   const isSessionComplete = feedback && score.total >= sessionLength;
+  const currentStrip = Math.min(score.total + (feedback ? 0 : 1), sessionLength);
 
   React.useEffect(() => {
     if (!feedback || !feedbackRef.current) return;
@@ -45,7 +46,7 @@ export function Practice({
       <div className="practice-header">
         <div>
           <span className="eyebrow">{caseData?.difficulty} practice</span>
-          <h1>What rhythm or ECG pattern is this?</h1>
+          <h1>Identify the strip</h1>
         </div>
         <div className="practice-header-actions">
           <button className="secondary-button back-button" onClick={onReset} type="button">
@@ -53,7 +54,7 @@ export function Practice({
             Main screen
           </button>
           <div className="score-pill">
-            Score {score.correct}/{score.total} / {sessionLength}
+            Score {score.correct}/{score.total} · Strip {currentStrip} of {sessionLength}
           </div>
         </div>
       </div>
@@ -83,7 +84,7 @@ export function Practice({
       </section>
 
       <form className="answer-panel" onSubmit={onSubmit}>
-        <span className="answer-label">What rhythm or ECG pattern is this?</span>
+        <span className="answer-label">Choose the rhythm or ECG pattern</span>
         <div className="choice-grid">
           {(caseData?.options || []).map((rhythm) => (
             <button

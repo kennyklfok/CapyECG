@@ -263,6 +263,20 @@ function Practice({
   onNext,
   onReset,
 }) {
+  const feedbackRef = React.useRef(null);
+
+  React.useEffect(() => {
+    if (!feedback || !feedbackRef.current) return;
+
+    requestAnimationFrame(() => {
+      feedbackRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+      feedbackRef.current?.focus({ preventScroll: true });
+    });
+  }, [feedback]);
+
   return (
     <section className="practice-layout">
       <div className="practice-header">
@@ -328,7 +342,7 @@ function Practice({
       </form>
 
       {error && <p className="error-text">{error}</p>}
-      {feedback && <FeedbackPanel feedback={feedback} />}
+      {feedback && <FeedbackPanel feedback={feedback} ref={feedbackRef} />}
       {learnMore && <LearnMorePanel lesson={learnMore} />}
 
       {feedback && (
@@ -441,9 +455,13 @@ function EcgViewer({ waveform }) {
   );
 }
 
-function FeedbackPanel({ feedback }) {
+const FeedbackPanel = React.forwardRef(function FeedbackPanel({ feedback }, ref) {
   return (
-    <section className={feedback.is_correct ? "feedback correct" : "feedback review"}>
+    <section
+      ref={ref}
+      className={feedback.is_correct ? "feedback correct" : "feedback review"}
+      tabIndex={-1}
+    >
       <div className="feedback-head">
         <img src={capybaraIcon} alt="" />
         <div>
@@ -465,7 +483,7 @@ function FeedbackPanel({ feedback }) {
       </ul>
     </section>
   );
-}
+});
 
 function LearnMorePanel({ lesson }) {
   return (

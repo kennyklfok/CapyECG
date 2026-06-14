@@ -14,7 +14,7 @@ load_dotenv()
 
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
 DEFAULT_MODEL = "llama-3.3-70b-versatile"
-GROQ_CASE_TIMEOUT_SECONDS = 8
+GROQ_CASE_TIMEOUT_SECONDS = 4
 GROQ_LEARN_MORE_TIMEOUT_SECONDS = 8
 DIFFICULTY_MAP = {
     "Easy": "Beginner",

@@ -22,6 +22,9 @@ def test_new_case_and_submit_answer_flow(monkeypatch):
     assert case["waveform"]["durationSeconds"] == 10
     assert case["waveform"]["paperSpeed"] == "25 mm/s"
     assert case["waveform"]["gain"] == "10 mm/mV"
+    assert case["waveform"]["displayLayout"] == "standard-3x4-plus-rhythm"
+    assert case["waveform"]["rhythmLead"] == "II"
+    assert len(case["waveform"]["leads"]) == 12
     assert "rhythm_label" not in case
 
     answer_response = client.post(
@@ -106,6 +109,10 @@ def test_rhythm_library_has_metadata_and_waveforms():
         assert waveform["durationSeconds"] == 10
         assert waveform["sampleRate"] == 250
         assert len(waveform["samples"]) == 2500
+        assert waveform["samples"] == waveform["leads"]["II"]
+        assert waveform["leadOrder"] == ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+        assert set(waveform["leads"]) == set(waveform["leadOrder"])
+        assert all(len(samples) == 2500 for samples in waveform["leads"].values())
 
 
 def test_generated_case_stores_matching_waveform_rhythm_label(monkeypatch):

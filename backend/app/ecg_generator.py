@@ -5,6 +5,23 @@ from typing import Any
 
 SAMPLE_RATE = 250
 DURATION_SECONDS = 10
+STANDARD_12_LEADS = ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
+
+
+LEAD_PROFILES = {
+    "I": {"scale": 0.82, "invert": 1, "offset": 0.0},
+    "II": {"scale": 1.0, "invert": 1, "offset": 0.0},
+    "III": {"scale": 0.74, "invert": 1, "offset": -0.01},
+    "aVR": {"scale": 0.72, "invert": -1, "offset": 0.0},
+    "aVL": {"scale": 0.54, "invert": 1, "offset": 0.01},
+    "aVF": {"scale": 0.88, "invert": 1, "offset": -0.005},
+    "V1": {"scale": 0.72, "invert": -1, "offset": 0.0},
+    "V2": {"scale": 0.82, "invert": -1, "offset": 0.0},
+    "V3": {"scale": 0.92, "invert": 1, "offset": 0.0},
+    "V4": {"scale": 1.14, "invert": 1, "offset": 0.005},
+    "V5": {"scale": 1.06, "invert": 1, "offset": 0.0},
+    "V6": {"scale": 0.94, "invert": 1, "offset": -0.005},
+}
 
 
 RHYTHMS = [
@@ -44,36 +61,58 @@ def generate_waveform(
     ectopic_beats = _ectopic_beats(rhythm, beat_times)
     noise_level = {"Beginner": 0.006, "Intermediate": 0.018, "Advanced": 0.035}[difficulty]
 
-    samples = []
+    lead_samples = {lead: [] for lead in STANDARD_12_LEADS}
     for index in range(SAMPLE_RATE * DURATION_SECONDS):
         t = index / SAMPLE_RATE
-        value = _baseline(t, rng, noise_level)
-        value += _atrial_activity(t, rhythm)
-        value += _standalone_p_waves(t, rhythm)
+        base_value = _baseline(t, rng, noise_level)
+        base_value += _atrial_activity(t, rhythm)
+        base_value += _standalone_p_waves(t, rhythm)
 
         if rhythm == "Ventricular fibrillation":
-            value += _vfib_activity(t, rng)
-            samples.append(round(_clamp(value, -1.7, 1.9), 4))
-            continue
+            base_value += _vfib_activity(t, rng)
+        else:
+            for beat_index, beat_time in enumerate(beat_times):
+                beat_kind = ectopic_beats.get(beat_index, "normal")
+                base_value += _beat_waveform(t, beat_time, rhythm, beat_kind)
 
-        for beat_index, beat_time in enumerate(beat_times):
-            beat_kind = ectopic_beats.get(beat_index, "normal")
-            value += _beat_waveform(t, beat_time, rhythm, beat_kind)
-
-        samples.append(round(_clamp(value, -1.7, 1.9), 4))
+        for lead in STANDARD_12_LEADS:
+            lead_samples[lead].append(_shape_lead_value(base_value, t, rhythm, lead))
 
     return {
         "sampleRate": SAMPLE_RATE,
         "durationSeconds": DURATION_SECONDS,
-        "lead": "Lead II",
+        "lead": "12-lead ECG",
+        "displayLayout": "standard-3x4-plus-rhythm",
+        "rhythmLead": "II",
+        "leadOrder": STANDARD_12_LEADS,
         "heartRate": _heart_rate(beat_times),
         "regularity": _regularity_label(rhythm, beat_times),
         "paperSpeed": "25 mm/s",
         "gain": "10 mm/mV",
         "calibration": "1 mV",
         "beatCount": len(beat_times),
-        "samples": samples,
+        "samples": lead_samples["II"],
+        "leads": lead_samples,
     }
+
+
+def _shape_lead_value(base_value: float, t: float, rhythm: str, lead: str) -> float:
+    profile = LEAD_PROFILES[lead]
+    value = base_value * profile["scale"] * profile["invert"] + profile["offset"]
+
+    if rhythm == "LVH pattern" and lead in {"I", "aVL", "V5", "V6"}:
+        value *= 1.24
+        value += _gaussian(t % 0.84, 0.72, 0.09, -0.10)
+    if rhythm == "Right bundle branch block" and lead in {"V1", "V2"}:
+        value *= -1.12
+    if rhythm == "Left bundle branch block" and lead in {"V5", "V6", "I", "aVL"}:
+        value *= 1.16
+    if rhythm == "Hyperkalemia pattern" and lead.startswith("V"):
+        value *= 1.08
+    if rhythm == "Ventricular tachycardia" and lead in {"aVR", "V1", "V2"}:
+        value *= -1.0
+
+    return round(_clamp(value, -1.7, 1.9), 4)
 
 
 def _heart_rate(beat_times: list[float]) -> int:

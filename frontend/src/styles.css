@@ -265,9 +265,9 @@ h2 {
 
 .sinus-glow {
   fill: none;
-  stroke: rgba(19, 39, 34, 0.12);
   stroke-linecap: round;
   stroke-linejoin: round;
+  stroke: rgba(19, 39, 34, 0.12);
   stroke-width: 12;
 }
 
@@ -571,12 +571,14 @@ button:disabled {
 .ecg-frame {
   padding: 18px;
   background: #fff8f7;
+  overflow-x: auto;
 }
 
 .ecg-frame svg {
   display: block;
   width: 100%;
-  min-height: 260px;
+  min-width: 900px;
+  min-height: 520px;
   border-radius: 6px;
 }
 

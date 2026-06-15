@@ -38,19 +38,34 @@ export function SourceNote({ sourceType }) {
 }
 
 export function EcgViewer({ waveform }) {
-  const width = 1000;
-  const height = 360;
-  const visibleSamples = waveform.samples;
-  const points = visibleSamples
-    .map((sample, index) => {
-      const x = (index / (visibleSamples.length - 1)) * width;
-      const y = height / 2 - sample * 95;
-      return `${x.toFixed(1)},${Math.max(20, Math.min(height - 20, y)).toFixed(1)}`;
-    })
-    .join(" ");
+  const width = 1200;
+  const height = 760;
+  const rowHeight = 160;
+  const rhythmRowY = 560;
+  const segmentWidth = width / 4;
+  const segmentSamples = Math.round((waveform.sampleRate || 250) * 2.5);
+  const leads = waveform.leads || synthesizeDisplayLeads(waveform.samples || []);
+  const layout = [
+    ["I", "aVR", "V1", "V4"],
+    ["II", "aVL", "V2", "V5"],
+    ["III", "aVF", "V3", "V6"],
+  ];
+
+  const buildPoints = (samples, xOffset, yCenter, segmentIndex = 0, samplesPerSegment = segmentSamples, drawWidth = segmentWidth) => {
+    const start = segmentIndex * samplesPerSegment;
+    const visibleSamples = samples.slice(start, start + samplesPerSegment);
+
+    return visibleSamples
+      .map((sample, index) => {
+        const x = xOffset + (index / Math.max(1, visibleSamples.length - 1)) * drawWidth;
+        const y = yCenter - sample * 48;
+        return `${x.toFixed(1)},${Math.max(yCenter - 66, Math.min(yCenter + 66, y)).toFixed(1)}`;
+      })
+      .join(" ");
+  };
 
   return (
-    <div className="ecg-frame" aria-label="ECG rhythm strip">
+    <div className="ecg-frame" aria-label="12-lead ECG">
       <svg viewBox={`0 0 ${width} ${height}`} role="img">
         <defs>
           <pattern id="small-grid" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -63,12 +78,85 @@ export function EcgViewer({ waveform }) {
         </defs>
         <rect width={width} height={height} fill="#fff8f7" />
         <rect width={width} height={height} fill="url(#large-grid)" />
-        <line x1="0" x2={width} y1={height / 2} y2={height / 2} stroke="#e9aaa5" strokeWidth="1" />
-        <text x="860" y="326" fill="#5f786c" fontSize="22" fontWeight="700">
+        {[80, 240, 400, rhythmRowY].map((y) => (
+          <line key={y} x1="0" x2={width} y1={y} y2={y} stroke="#e9aaa5" strokeWidth="1" />
+        ))}
+        {[1, 2, 3].map((column) => (
+          <line
+            key={column}
+            x1={column * segmentWidth}
+            x2={column * segmentWidth}
+            y1="0"
+            y2="480"
+            stroke="#cf817c"
+            strokeDasharray="8 8"
+            strokeWidth="1.2"
+          />
+        ))}
+        {layout.map((row, rowIndex) =>
+          row.map((lead, columnIndex) => {
+            const x = columnIndex * segmentWidth;
+            const y = 80 + rowIndex * rowHeight;
+            return (
+              <g key={lead}>
+                <text x={x + 16} y={y - 50} fill="#31433d" fontSize="24" fontWeight="800">
+                  {lead}
+                </text>
+                <polyline
+                  points={buildPoints(leads[lead] || [], x, y, columnIndex)}
+                  fill="none"
+                  stroke="#26332f"
+                  strokeWidth="3"
+                  strokeLinejoin="round"
+                  strokeLinecap="round"
+                />
+              </g>
+            );
+          }),
+        )}
+        <text x="16" y={rhythmRowY - 52} fill="#31433d" fontSize="24" fontWeight="800">
+          II
+        </text>
+        <polyline
+          points={buildPoints(leads[waveform.rhythmLead || "II"] || waveform.samples || [], 0, rhythmRowY, 0, (leads.II || waveform.samples || []).length, width)}
+          fill="none"
+          stroke="#26332f"
+          strokeWidth="3"
+          strokeLinejoin="round"
+          strokeLinecap="round"
+        />
+        <text x="1010" y="724" fill="#5f786c" fontSize="22" fontWeight="700">
           10 sec
         </text>
-        <polyline points={points} fill="none" stroke="#26332f" strokeWidth="3.1" strokeLinejoin="round" strokeLinecap="round" />
       </svg>
     </div>
   );
+}
+
+function synthesizeDisplayLeads(samples) {
+  const profiles = {
+    I: { scale: 0.82, invert: 1, offset: 0 },
+    II: { scale: 1, invert: 1, offset: 0 },
+    III: { scale: 0.74, invert: 1, offset: -0.01 },
+    aVR: { scale: 0.72, invert: -1, offset: 0 },
+    aVL: { scale: 0.54, invert: 1, offset: 0.01 },
+    aVF: { scale: 0.88, invert: 1, offset: -0.005 },
+    V1: { scale: 0.72, invert: -1, offset: 0 },
+    V2: { scale: 0.82, invert: -1, offset: 0 },
+    V3: { scale: 0.92, invert: 1, offset: 0 },
+    V4: { scale: 1.14, invert: 1, offset: 0.005 },
+    V5: { scale: 1.06, invert: 1, offset: 0 },
+    V6: { scale: 0.94, invert: 1, offset: -0.005 },
+  };
+
+  return Object.fromEntries(
+    Object.entries(profiles).map(([lead, profile]) => [
+      lead,
+      samples.map((sample) => clamp(sample * profile.scale * profile.invert + profile.offset, -1.7, 1.9)),
+    ]),
+  );
+}
+
+function clamp(value, low, high) {
+  return Math.max(low, Math.min(high, value));
 }

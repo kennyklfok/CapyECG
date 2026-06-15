@@ -72,9 +72,9 @@ export function Practice({
       <section className="strip-panel">
         <div className="strip-toolbar">
           <div>
-            <strong>10-second rhythm strip</strong>
+            <strong>12-lead ECG</strong>
             <span>
-              {caseData?.waveform?.lead || "Lead II"} / <SourceLabel sourceType={caseData?.source_type} />
+              Standard 3x4 layout with Lead II rhythm strip / <SourceLabel sourceType={caseData?.source_type} />
             </span>
           </div>
         </div>

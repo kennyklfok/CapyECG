@@ -2,7 +2,7 @@
 
 Hosted on https://capyecg.onrender.com/
 
-CapyECG is an educational ECG rhythm trainer for med students, ECG techs, paramedics, and nurses. It shows a 10-second rhythm strip, asks the learner to identify the rhythm, then reveals the known answer with short teaching points.
+CapyECG is an educational ECG rhythm trainer for med students, ECG techs, paramedics, and nurses. It shows a synthetic 12-lead ECG with a 10-second Lead II rhythm strip, asks the learner to identify the rhythm, then reveals the known answer with short teaching points.
 
 **For training only. Not for clinical diagnosis.**
 
@@ -12,7 +12,7 @@ CapyECG is an educational ECG rhythm trainer for med students, ECG techs, parame
 - FastAPI backend with SQLite storage
 - Groq-generated educational prompts and answer choices with CapyECG-rendered simulator strips
 - In-memory Groq caching for repeated rhythm explanations and learning notes
-- Static ECG strip view on grid paper
+- Standard 12-lead ECG view on continuous grid paper
 - Cozy green spa theme with a capybara mascot balancing an orange
 - Four-option multiple-choice rhythm answers and feedback panel
 - Post-answer Learn more button for a short Groq-powered educational rhythm note
@@ -52,7 +52,7 @@ CapyECG/
   backend/
     app/
       database.py       SQLite setup and seed loading
-      ecg_generator.py  Synthetic educational waveform generation
+      ecg_generator.py  Synthetic educational 12-lead waveform generation
       main.py           FastAPI routes
       schemas.py        API request/response models
       seed_data.py      MVP rhythm labels, features, explanations
@@ -148,7 +148,7 @@ CapyECG does not diagnose patients. The MVP returns explanations based on the st
 
 AI-generated case prompts may be influenced by public or licensed examples that are already interpreted, but the app should treat generated case content as educational simulation. Each case still needs a known stored label, curated features, four answer options, and provenance metadata. The UI and API should describe this as generated educational content, not patient data.
 
-Groq generation is requested when a learner chooses Easy, Medium, or Hard. Groq selects the educational case metadata and choices; CapyECG renders the strip with rhythm-specific simulator templates. Future AI-assisted explanations should continue to use the generated/stored label, source metadata, and curated ECG features as ground truth. They should not claim to independently diagnose a strip or provide medical advice.
+Groq generation is requested when a learner chooses Easy, Medium, or Hard. Groq selects the educational case metadata and choices; CapyECG renders the 12-lead ECG with rhythm-specific simulator templates. Future AI-assisted explanations should continue to use the generated/stored label, source metadata, and curated ECG features as ground truth. They should not claim to independently diagnose a strip or provide medical advice.
 
 ## Future Real ECG Dataset Integration
 

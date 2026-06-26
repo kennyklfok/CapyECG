@@ -2,6 +2,7 @@ from fastapi.testclient import TestClient
 
 from app.database import get_connection, init_db, row_to_case
 from app.ecg_generator import RHYTHMS, generate_waveform
+from app import ecg_generator
 from app.groq_cases import choose_rhythm
 from app.main import app
 from app.seed_data import DIFFICULTY_BY_RHYTHM, EXPLANATIONS, KEY_FEATURES
@@ -113,6 +114,83 @@ def test_rhythm_library_has_metadata_and_waveforms():
         assert waveform["leadOrder"] == ["I", "II", "III", "aVR", "aVL", "aVF", "V1", "V2", "V3", "V4", "V5", "V6"]
         assert set(waveform["leads"]) == set(waveform["leadOrder"])
         assert all(len(samples) == 2500 for samples in waveform["leads"].values())
+
+
+def test_rhythm_templates_match_expected_rate_and_regularity():
+    expectations = {
+        "Normal sinus rhythm": ((60, 100), "Regular"),
+        "Sinus bradycardia": ((35, 59), "Regular"),
+        "Sinus tachycardia": ((100, 140), "Regular"),
+        "Sinus arrhythmia": ((60, 100), "Irregular"),
+        "Atrial fibrillation": ((50, 130), "Irregularly irregular"),
+        "Atrial flutter": ((70, 110), "Regular"),
+        "First-degree AV block": ((60, 100), "Regular"),
+        "Second-degree AV block type I": ((40, 70), "Irregular"),
+        "Second-degree AV block type II": ((35, 70), "Irregular"),
+        "Third-degree AV block": ((25, 45), "AV dissociation"),
+        "PVCs": ((60, 100), "Mostly regular with early beats"),
+        "PACs": ((60, 100), "Mostly regular with early beats"),
+        "Ventricular tachycardia": ((120, 220), "Regular"),
+        "Ventricular fibrillation": ((0, 0), "Chaotic"),
+        "Accelerated idioventricular rhythm": ((50, 110), "Regular"),
+        "SVT": ((140, 220), "Regular"),
+        "Junctional rhythm": ((40, 70), "Regular"),
+        "Paced rhythm": ((50, 90), "Regular"),
+        "LVH pattern": ((60, 100), "Regular"),
+        "Left bundle branch block": ((60, 100), "Regular"),
+        "Right bundle branch block": ((60, 100), "Regular"),
+        "Hyperkalemia pattern": ((60, 100), "Regular"),
+        "Prolonged QT": ((60, 100), "Regular"),
+    }
+
+    for index, rhythm in enumerate(RHYTHMS, start=1):
+        waveform = generate_waveform(rhythm, DIFFICULTY_BY_RHYTHM[rhythm], seed=index)
+        rate_range, regularity = expectations[rhythm]
+
+        assert rate_range[0] <= waveform["heartRate"] <= rate_range[1]
+        assert waveform["regularity"] == regularity
+
+
+def test_junctional_template_has_absent_p_waves():
+    beat_time = 1.0
+
+    p_window_values = [
+        abs(ecg_generator._beat_waveform(t, beat_time, "Junctional rhythm", "normal"))
+        for t in [beat_time - 0.20, beat_time - 0.17, beat_time - 0.14, beat_time - 0.12]
+    ]
+
+    assert max(p_window_values) < 0.001
+
+
+def test_wide_complex_templates_are_wide_when_labeled_wide():
+    beat_time = 1.0
+    qrs_window = [beat_time - 0.08 + 0.004 * index for index in range(41)]
+
+    for rhythm in ["Accelerated idioventricular rhythm", "Left bundle branch block", "Right bundle branch block"]:
+        active_points = [
+            t
+            for t in qrs_window
+            if abs(ecg_generator._beat_waveform(t, beat_time, rhythm, "normal")) > 0.08
+        ]
+
+        assert active_points[-1] - active_points[0] >= 0.10
+
+
+def test_bundle_branch_templates_keep_sinus_p_waves():
+    beat_time = 1.0
+
+    for rhythm in ["Left bundle branch block", "Right bundle branch block"]:
+        p_value = ecg_generator._beat_waveform(beat_time - 0.17, beat_time, rhythm, "normal")
+
+        assert p_value > 0.10
+
+
+def test_paced_template_has_pacer_spike_before_wide_complex():
+    beat_time = 1.0
+
+    spike_value = ecg_generator._beat_waveform(beat_time - 0.045, beat_time, "Paced rhythm", "normal")
+
+    assert spike_value > 0.8
 
 
 def test_generated_case_stores_matching_waveform_rhythm_label(monkeypatch):

@@ -252,13 +252,16 @@ def _vfib_activity(t: float, rng: random.Random) -> float:
 def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> float:
     if rhythm == "Ventricular tachycardia":
         return _wide_complex(t, beat_time, amplitude=1.22, width=0.082, t_wave=False)
-    if rhythm in {"Left bundle branch block", "Paced rhythm"}:
+    if rhythm == "Accelerated idioventricular rhythm":
+        return _wide_complex(t, beat_time, amplitude=0.94, width=0.078, t_wave=True)
+    if rhythm == "Left bundle branch block":
+        return _sinus_p_wave(t, beat_time) + _wide_complex(t, beat_time, amplitude=1.18, width=0.092, t_wave=True)
+    if rhythm == "Paced rhythm":
         value = _wide_complex(t, beat_time, amplitude=1.18, width=0.092, t_wave=True)
-        if rhythm == "Paced rhythm":
-            value += _pacing_spike(t, beat_time - 0.045)
+        value += _pacing_spike(t, beat_time - 0.045)
         return value
     if rhythm == "Right bundle branch block":
-        return _rbbb_complex(t, beat_time)
+        return _sinus_p_wave(t, beat_time) + _rbbb_complex(t, beat_time)
     if beat_kind == "pvc":
         return _wide_complex(t, beat_time, amplitude=1.32, width=0.07, t_wave=True)
 
@@ -276,8 +279,7 @@ def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> f
     if rhythm in {"Atrial fibrillation", "Atrial flutter", "SVT"}:
         p_amp = 0.0
     if rhythm == "Junctional rhythm":
-        p_amp = -0.08
-        pr_delay = -0.08
+        p_amp = 0.0
     if rhythm == "LVH pattern":
         qrs_amp = 1.62
         t_amp = -0.18
@@ -308,6 +310,10 @@ def _beat_waveform(t: float, beat_time: float, rhythm: str, beat_kind: str) -> f
     t_width = 0.12 if rhythm in {"Hyperkalemia pattern", "Prolonged QT"} else 0.085
     value += _gaussian(t, t_center, t_width, t_amp)
     return value
+
+
+def _sinus_p_wave(t: float, beat_time: float) -> float:
+    return _gaussian(t, beat_time - 0.17, 0.032, 0.13)
 
 
 def _wide_complex(t: float, beat_time: float, amplitude: float, width: float, t_wave: bool) -> float:

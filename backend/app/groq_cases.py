@@ -348,7 +348,7 @@ def _fallback_confusions(rhythm: str) -> list[str]:
         "Ventricular fibrillation": ["Artifact", "Polymorphic ventricular tachycardia"],
         "Accelerated idioventricular rhythm": ["Slow ventricular tachycardia", "Paced rhythm"],
         "SVT": ["Sinus tachycardia", "Atrial flutter with 2:1 conduction"],
-        "Junctional rhythm": ["Sinus bradycardia with small P waves", "Accelerated idioventricular rhythm if QRS is wide"],
+        "Junctional rhythm": ["Sinus bradycardia with visible P waves", "Accelerated idioventricular rhythm if QRS is wide"],
         "Paced rhythm": ["Left bundle branch block", "Ventricular rhythm without visible pacing spikes"],
         "LVH pattern": ["Normal high voltage variant", "Left bundle branch block if QRS is wide"],
         "Left bundle branch block": ["Paced rhythm", "Ventricular rhythm"],
